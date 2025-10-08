@@ -1,52 +1,52 @@
 # source-retriever-mcp
 
-一个遵循 MCP（Model Context Protocol）的服务端，实现从本地 Maven 仓库中获取 Java 源码文本（MVP）。
+A server implementation following the MCP (Model Context Protocol) that retrieves Java source code text from local Maven repositories (MVP).
 
-- 仅支持 Java + Maven（MVP）
-- 在本地 `~/.m2/repository` 中定位 `-sources.jar`
-- 解压并读取指定 `class` 对应的 `.java` 文件，可选提取具体方法源码
-- 本地缓存提取结果，加速重复请求
+- Only supports Java + Maven (MVP)
+- Locates `-sources.jar` files in local `~/.m2/repository`
+- Extracts and reads `.java` files corresponding to specified `class`, with optional method source extraction
+- Caches extraction results locally for faster repeated requests
 
-## 快速开始
+## Quick Start
 
-1. 安装依赖
+1. Install dependencies
 
 ```bash
 npm i
 ```
 
-2. 开发运行（stdio）
+2. Development run (stdio)
 
 ```bash
 npm run dev
 ```
 
-3. 构建与启动
+3. Build and start
 
 ```bash
 npm run build
 npm start
 ```
 
-> 本服务使用 MCP 标准的 stdio 传输，可作为子进程被 MCP 客户端拉起。
+> This service uses MCP standard stdio transport and can be launched as a subprocess by MCP clients.
 
-## MCP 工具
+## MCP Tools
 
-- 名称: `get_java_source`
-- 入参:
-  - `groupId` (string): 例如 `com.google.guava`
-  - `artifactId` (string): 例如 `guava`
-  - `version` (string): 例如 `32.0.0-jre`
-  - `className` (string): 完整类名，例如 `com.google.common.collect.ImmutableList`
-  - `methodSignature` (string, 可选): 例如 `of(java.lang.Object[])`
-  - `m2RepoPath` (string, 可选): 本地 Maven 仓库路径，默认 `~/.m2/repository`
-  - `cacheDir` (string, 可选): 本地缓存目录，默认 `<项目目录>/.cache/sources`
+- Name: `get_java_source`
+- Parameters:
+  - `groupId` (string): e.g. `com.google.guava`
+  - `artifactId` (string): e.g. `guava`
+  - `version` (string): e.g. `32.0.0-jre`
+  - `className` (string): full class name, e.g. `com.google.common.collect.ImmutableList`
+  - `methodSignature` (string, optional): e.g. `of(java.lang.Object[])`
+  - `m2RepoPath` (string, optional): local Maven repository path, default `~/.m2/repository`
+  - `cacheDir` (string, optional): local cache directory, default `<project_directory>/.cache/sources`
 
-- 输出: MCP 内容对象，`text` 字段为源码文本，`meta` 包含定位信息：
+- Output: MCP content object with `text` field containing source code and `meta` containing location information:
 
 ```json
 {
-  "text": "...java 源码...",
+  "text": "...java source code...",
   "meta": {
     "jarPath": ".../guava-32.0.0-jre-sources.jar",
     "entryPath": "com/google/common/collect/ImmutableList.java",
@@ -56,9 +56,9 @@ npm start
 }
 ```
 
-## MCP 客户端配置示例（Claude Desktop）
+## MCP Client Configuration Example (Claude Desktop)
 
-在 `claude_desktop_config.json` 中添加：
+Add to `claude_desktop_config.json`:
 
 ```jsonc
 {
@@ -72,25 +72,25 @@ npm start
 }
 ```
 
-## 实现说明
+## Implementation Details
 
-- `src/maven.ts`: 基于 `{groupId, artifactId, version}` 解析 `-sources.jar` 路径
-- `src/jar.ts`: 读取 JAR 条目，定位 `.java` 文件并返回文本
-- `src/cache.ts`: 简单文件缓存，缓存键为 `group/artifact/version/entryPath`
-- `src/methodExtract.ts`: 朴素方法提取（基于签名子串与括号计数），若未匹配则返回整文件
-- `src/service.ts`: 组合流程，提供 `getJavaSourceText()`
-- `src/server.ts`: MCP 服务端与工具注册
+- `src/maven.ts`: Resolves `-sources.jar` paths based on `{groupId, artifactId, version}`
+- `src/jar.ts`: Reads JAR entries, locates `.java` files and returns text
+- `src/cache.ts`: Simple file caching with key `group/artifact/version/entryPath`
+- `src/methodExtract.ts`: Naive method extraction (based on signature substring and bracket counting), returns full file if no match
+- `src/service.ts`: Combines workflow, provides `getJavaSourceText()`
+- `src/server.ts`: MCP server and tool registration
 
-## 约束与注意
+## Constraints and Notes
 
-- 仅支持已存在的 `-sources.jar`，不涉及 jar 反编译
-- 对内部类（`$`）会回退到顶层类 `.java` 文件
-- 方法提取为 MVP 方案，可能对泛型/注解/换行等复杂声明不完全稳健，后续可引入 Java 解析器增强
+- Only supports existing `-sources.jar` files, no jar decompilation involved
+- Falls back to top-level class `.java` file for inner classes (`$`)
+- Method extraction is an MVP solution and may not be completely robust for complex declarations with generics/annotations/line breaks; a Java parser can be introduced later for enhancement
 
-## 配置
+## Configuration
 
-- `Maven` 仓库默认 `~/.m2/repository`，可在调用时传入 `m2RepoPath` 覆盖
-- 缓存目录默认 `<项目目录>/.cache/sources`，可在调用时传入 `cacheDir` 覆盖
+- Maven repository defaults to `~/.m2/repository`, can be overridden with `m2RepoPath` parameter
+- Cache directory defaults to `<project_directory>/.cache/sources`, can be overridden with `cacheDir` parameter
 
 ## License
 
